@@ -1,5 +1,6 @@
 from collections import defaultdict
 import math
+import jieba.analyse
 import jieba
 import re
 
@@ -22,11 +23,8 @@ def read_stopwords():
 class Document:
 
     # 构造函数
-    def __init__(self, path, id):
-
+    def __init__(self, path):
         self.__path = path
-        self.__id = id
-
         self.__words = []
         self.__frequency_dict = defaultdict(int)
 
@@ -41,9 +39,9 @@ class Document:
         self.__caculate_frequency()
 
         # sort dictionary by value
-        self.__frequency_dict = sorted(self.__frequency_dict.items(), key=lambda kv:kv[1], reverse= True)
+        # self.__frequency_dict = sorted(self.__frequency_dict.items(), key=lambda kv:kv[1], reverse= True)
+
         self.__frequency_dict = dict(self.__frequency_dict)
-        print(self.__frequency_dict)
 
 
     # build words list
@@ -58,6 +56,8 @@ class Document:
 
         # 去停用词
         self.__words = [self.word for self.word in self.__words if self.word not in stopwords]
+        # rebuild the text file
+        self.__text = ''.join(self.__words)
 
 
     # 计算频率并生成字典
@@ -65,9 +65,9 @@ class Document:
         for self.__word in self.__words:
             self.__frequency_dict[self.__word] += 1
 
-    # get id
-    def get_id(self):
-        return self.__id
+
+    def get_text(self):
+        return self.__text
 
     # get words list
     def get_words(self):
@@ -92,14 +92,22 @@ def caculate_similarity(doc_1:Document,doc_2:Document)->float:
     dict_1 = doc_1.get_dictionary()
     dict_2 = doc_2.get_dictionary()
 
-    # 取关键词
-    keywords = set()
-    keywords_num = min(1000000, len(dict_1), len(dict_2))
-    it_1 = iter(dict_1)
-    it_2 = iter(dict_2)
-    for i in range(keywords_num):
-        keywords.add(next(it_1))
-        keywords.add(next(it_2))
+    # 词袋模型
+    # 手动提取频率最高的关键词
+    # keywords = set()
+    # keywords_num = min(20, len(dict_1), len(dict_2))
+    # it_1 = iter(dict_1)
+    # it_2 = iter(dict_2)
+    # for i in range(keywords_num):
+    #     keywords.add(next(it_1))
+    #     keywords.add(next(it_2))
+
+
+    # TF-IDF 模型
+    # 利用 jieba 自带的 jieba.analyse 提取关键词
+    keywords_num = min(len(dict_1), len(dict_2))
+    keywords = set(jieba.analyse.extract_tags(doc_1.get_text(), keywords_num) + jieba.analyse.extract_tags(doc_2.get_text(), keywords_num))
+
 
 
     # 构造向量
@@ -107,8 +115,8 @@ def caculate_similarity(doc_1:Document,doc_2:Document)->float:
     for keyword in keywords:
         vector.append((doc_1.get_frequency(keyword),doc_2.get_frequency(keyword)))
 
-    # 计算
 
+    # 计算余弦相似度
     v_1 = 0
     v_2 = 0
     v = 0
