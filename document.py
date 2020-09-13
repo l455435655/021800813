@@ -1,13 +1,10 @@
-from collections import defaultdict
 import math
 import jieba.analyse
 import jieba
 import re
 
 
-
-
-# 停用词表
+# build stopwords
 stopwords = set()
 # read stopwords.txt
 def read_stopwords():
@@ -18,21 +15,25 @@ def read_stopwords():
 
 
 
-
-
 class Document:
 
-    # 构造函数
     def __init__(self, path):
+
+
         self.__path = path
         self.__words = []
-        self.__frequency_dict = defaultdict(int)
+        self.__frequency_dict = {}
 
 
         # read txt file
-        self.__file = open(path,encoding='utf-8')
-        self.__text = self.__file.read()
-        self.__file.close()
+        try:
+            self.__file = open(path, encoding='utf-8')
+            self.__text = self.__file.read()
+            self.__file.close()
+        except:
+            print("无法读取 %s"%(self.__path))
+            raise
+
 
         # cut txt file and caculate frequency
         self.__cut_txt()
@@ -40,8 +41,7 @@ class Document:
 
         # sort dictionary by value
         # self.__frequency_dict = sorted(self.__frequency_dict.items(), key=lambda kv:kv[1], reverse= True)
-
-        self.__frequency_dict = dict(self.__frequency_dict)
+        # self.__frequency_dict = dict(self.__frequency_dict)
 
 
     # build words list
@@ -63,26 +63,28 @@ class Document:
     # 计算频率并生成字典
     def __caculate_frequency(self):
         for self.__word in self.__words:
-            self.__frequency_dict[self.__word] += 1
+            self.__frequency_dict[self.__word] = self.__frequency_dict.get(self.__word, 0) + 1
 
 
-    def get_text(self):
+
+    def get_text(self) -> str:
         return self.__text
 
     # get words list
-    def get_words(self):
+    def get_words(self) -> list:
         return self.__words
 
     # 获取字典
-    def get_dictionary(self):
+    def get_dictionary(self) -> dict:
         return self.__frequency_dict
 
     # get frequency
-    def get_frequency(self, word)->int:
-        if word in self.__frequency_dict:
-            return self.__frequency_dict[word]
-        else:
-            return 0
+    def get_frequency(self, word) -> int:
+        return self.__frequency_dict.get(word, 0)
+
+    # get TF-IDF
+    def get_tfidf(self, word) -> int:
+        pass
 
 
 
@@ -109,12 +111,11 @@ def caculate_similarity(doc_1:Document,doc_2:Document)->float:
     keywords = set(jieba.analyse.extract_tags(doc_1.get_text(), keywords_num) + jieba.analyse.extract_tags(doc_2.get_text(), keywords_num))
 
 
-
     # 构造向量
     vector = []
     for keyword in keywords:
         vector.append((doc_1.get_frequency(keyword),doc_2.get_frequency(keyword)))
-
+        # vector.append((doc_1.get_tfidf(keyword), doc_2.get_tfidf(keyword)))
 
     # 计算余弦相似度
     v_1 = 0
@@ -125,8 +126,12 @@ def caculate_similarity(doc_1:Document,doc_2:Document)->float:
         v_2 += i[1]**2
         v += (i[0] * i[1])
 
-    cosine_similiarity = v/math.sqrt(v_1 * v_2)
-
+    try:
+        cosine_similiarity = v/math.sqrt(v_1 * v_2)
+    except:
+        # float divison by zero
+        print("计算时出错!")
+        raise
 
     # 返回计算结果
     return cosine_similiarity
