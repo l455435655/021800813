@@ -31,8 +31,8 @@ class Document:
             self.__tfidf[word] = tfidf
         # print(self.__words)
 
-    def get_text(self) -> str:
-        return self.__text
+    # def get_text(self) -> str:
+    #     return self.__text
 
     # get words list
     def get_words(self) -> list:
