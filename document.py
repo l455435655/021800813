@@ -1,29 +1,15 @@
 import math
 import jieba.analyse
 import jieba
-import re
-
-
-# build stopwords
-stopwords = set()
-# read stopwords.txt
-def read_stopwords():
-    stopwords_file = open("stopwords.txt", encoding='utf-8')
-    for stopword in stopwords_file.readlines():
-        stopwords.add(stopword.strip())
-    stopwords_file.close()
-
 
 
 class Document:
 
     def __init__(self, path):
 
-
         self.__path = path
         self.__words = []
-        self.__frequency_dict = {}
-
+        self.__tfidf = {}
 
         # read txt file
         try:
@@ -34,38 +20,16 @@ class Document:
             print("无法读取 %s"%(self.__path))
             raise
 
-
-        # cut txt file and caculate frequency
-        self.__cut_txt()
-        self.__caculate_frequency()
-
-        # sort dictionary by value
-        # self.__frequency_dict = sorted(self.__frequency_dict.items(), key=lambda kv:kv[1], reverse= True)
-        # self.__frequency_dict = dict(self.__frequency_dict)
+        # analyse text
+        self.__analyse()
 
 
-    # build words list
-    def __cut_txt(self):
-
-        # self.__text中去除非中文
-        self.__text = re.sub(' ', '', self.__text)
-        self.__text = re.sub('\n', '', self.__text)
-
-        # 用jieba进行分词
-        self.__words = jieba.lcut(self.__text)
-
-        # 去停用词
-        self.__words = [self.word for self.word in self.__words if self.word not in stopwords]
-        # rebuild the text file
-        self.__text = ''.join(self.__words)
-
-
-    # 计算频率并生成字典
-    def __caculate_frequency(self):
-        for self.__word in self.__words:
-            self.__frequency_dict[self.__word] = self.__frequency_dict.get(self.__word, 0) + 1
-
-
+    # analyse text
+    def __analyse(self):
+        for word,tfidf in jieba.analyse.extract_tags(self.__text, topK=0, withWeight=True):
+            self.__words.append(word)
+            self.__tfidf[word] = tfidf
+        # print(self.__words)
 
     def get_text(self) -> str:
         return self.__text
@@ -74,65 +38,39 @@ class Document:
     def get_words(self) -> list:
         return self.__words
 
-    # 获取字典
-    def get_dictionary(self) -> dict:
-        return self.__frequency_dict
-
-    # get frequency
-    def get_frequency(self, word) -> int:
-        return self.__frequency_dict.get(word, 0)
-
     # get TF-IDF
-    def get_tfidf(self, word) -> int:
-        pass
+    def get_tfidf(self, word) -> float:
+        return self.__tfidf.get(word, 0)
 
 
 
+# caculate similiarity
+def caculate_similarity(doc_1:Document, doc_2:Document) -> float:
 
-# 计算余弦相似度
-def caculate_similarity(doc_1:Document,doc_2:Document)->float:
-    dict_1 = doc_1.get_dictionary()
-    dict_2 = doc_2.get_dictionary()
+    keywords_1 = set(doc_1.get_words())
+    keywords_2 = set(doc_2.get_words())
+    if len(keywords_1) == 0 or len(keywords_2) == 0:
+        print("文本无有效词汇，请输入包含有效词汇的文本路径")
+        raise
 
-    # 词袋模型
-    # 手动提取频率最高的关键词
-    # keywords = set()
-    # keywords_num = min(20, len(dict_1), len(dict_2))
-    # it_1 = iter(dict_1)
-    # it_2 = iter(dict_2)
-    # for i in range(keywords_num):
-    #     keywords.add(next(it_1))
-    #     keywords.add(next(it_2))
+    keywords = keywords_1 and keywords_2
 
-
-    # TF-IDF 模型
-    # 利用 jieba 自带的 jieba.analyse 提取关键词
-    keywords_num = min(len(dict_1), len(dict_2))
-    keywords = set(jieba.analyse.extract_tags(doc_1.get_text(), keywords_num) + jieba.analyse.extract_tags(doc_2.get_text(), keywords_num))
-
-
-    # 构造向量
+    # build vector
     vector = []
     for keyword in keywords:
-        vector.append((doc_1.get_frequency(keyword),doc_2.get_frequency(keyword)))
-        # vector.append((doc_1.get_tfidf(keyword), doc_2.get_tfidf(keyword)))
+        vector.append((doc_1.get_tfidf(keyword), doc_2.get_tfidf(keyword)))
 
-    # 计算余弦相似度
+    # caculate cosine_similiarity
     v_1 = 0
     v_2 = 0
     v = 0
     for i in vector:
-        v_1 += i[0]**2
-        v_2 += i[1]**2
+        v_1 += i[0] ** 2
+        v_2 += i[1] ** 2
         v += (i[0] * i[1])
 
-    try:
-        cosine_similiarity = v/math.sqrt(v_1 * v_2)
-    except:
-        # float divison by zero
-        print("计算时出错!")
-        raise
+    similiarity = v / math.sqrt(v_1 * v_2)
 
-    # 返回计算结果
-    return cosine_similiarity
 
+    # return caculate result
+    return similiarity

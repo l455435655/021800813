@@ -8,7 +8,6 @@ class MyClassTest(unittest.TestCase):
         jieba.setLogLevel(logging.INFO)
         self.doc_1 = document.Document(r"sim_0.8/orig.txt")
         self.doc_2 = document.Document(r"sim_0.8/orig_0.8_dis_10.txt")
-        document.read_stopwords()
 
     def tearDown(self) -> None:
         print("test over")

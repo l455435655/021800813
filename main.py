@@ -1,15 +1,11 @@
 import sys
-import jieba
 import logging
+import jieba
 import document
 
 
 def run():
     jieba.setLogLevel(logging.INFO)
-
-    # file_path_1 = r"sim_0.8/orig.txt"
-    # file_path_2 = r"sim_0.8/orig_0.8_dis_10.txt"
-    # output_path = r"output.txt"
 
     # get arguments from system terminal
     try:
@@ -18,13 +14,6 @@ def run():
         output_path = sys.argv[3]
     except:
         print("缺少参数!")
-        return
-
-    # read stopwords
-    try:
-        document.read_stopwords()
-    except:
-        print("无法打开 stopwords.txt")
         return
 
     # build Document object
@@ -49,8 +38,8 @@ def run():
         print("%s打开失败 "%(sys.argv[3]))
         return
 
+    print("%.2f"%(cosine_similiarity))
     print("OK")
-
 
 
 if __name__ == '__main__':
